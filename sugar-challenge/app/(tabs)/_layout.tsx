@@ -13,8 +13,8 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: secondary,
-        headerShown: true,
-        tabBarShowLabel:false
+        headerShown: false,
+        tabBarShowLabel: false,
       }}>
       <Tabs.Screen
         name='index'
@@ -23,7 +23,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <TabBarIcon name={focused ? 'home' : 'home-outline'} color={color} />
           ),
-          
+          header: () => <HomeHeader userName="เทสเทสเทส" />
         }}
       />
       <Tabs.Screen

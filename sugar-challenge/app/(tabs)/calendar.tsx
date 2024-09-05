@@ -4,7 +4,7 @@ import Wave from '@/components/wave'
 
 const Calendar = () => {
   return (
-    <View className='bg-red-100'>
+    <View>
       <Text>Calendar</Text>
     </View>
   )

@@ -1,24 +1,23 @@
-import { View, Text, StyleSheet } from 'react-native';
 import React, { useEffect } from 'react';
-import { Canvas, Circle, Group, rect, Rect, rrect, scale, Skia, } from '@shopify/react-native-skia';
-import { line, curveBasis, scaleLinear, area } from 'd3'
+import { Canvas, Circle, Group, Skia, Text, useFont } from '@shopify/react-native-skia';
+import { scaleLinear, area } from 'd3';
 import { useSharedValue, withRepeat, withTiming, Easing, useDerivedValue } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colorWave, primary, secondary } from '@/constants/Colors';
 
 type Props = {
+    size: number,
     sugarValue: number
 }
 
-const Wave = ({ sugarValue }: Props) => {
+const Wave = ({ sugarValue, size }: Props) => {
     //outter circle
-    const size = 175
     const r = size / 2;
     const padding = size / 30;
     const outerCircleRadius = r - padding / 2;
     //inner circle
-    const innerCircleGap = 0.05 * r;
-    const innerCircleMargin = (r*0.05) + innerCircleGap;
+    const innerCircleGap = 0.06 * r;
+    const innerCircleMargin = (r * 0.05) + innerCircleGap;
     const innerCircleRadius = r - innerCircleMargin;
 
     const minValue = 0;
@@ -31,15 +30,23 @@ const Wave = ({ sugarValue }: Props) => {
     const waveClipWidth = waveLength * waveCilpCount;
     const waveHeight = innerCircleRadius * 0.1;
 
+    const fontSize = r / 1.5;
+    const font = useFont(require('../assets/fonts/Mitr-Bold.ttf'), fontSize);
+
+    const textWidth = font?.measureText(`${sugarValue}`)?.width ?? 0;
+    const textTranslateX = r - textWidth / 2;
+    const textTranslateY = (r + fontSize) * 0.35;
+    const textTransform = [{ translateY: textTranslateY }];
+
+
     //data for building the wave area
     //[number, nummber] represent point
     const data: Array<[number, number]> = [];
 
-    //40 point per wave
-    //generate as point as 40 * waveClipCount
+    // Number of points should scale with the size of the circle
     for (let i = 0; i <= 40 * waveCilpCount; i++) {
-        data.push([i / (40 * waveCilpCount), Math.sin((i / (40 * waveCilpCount)) * Math.PI * 2)])
-    }
+        data.push([i / (40 * waveCilpCount), i / 40]);
+      }
 
     // interpolate value ((0,1),(0,waveClipCount))
     const waveScaleX = scaleLinear().range([0, waveClipWidth]).domain([0, 1])
@@ -53,7 +60,7 @@ const Wave = ({ sugarValue }: Props) => {
         })
         .y0(function (d) {
             return waveScaleY(
-                Math.sin(d[1] * 2 + waveHeight)
+                Math.sin(d[1] * 2 * Math.PI)
             )
         })
         .y1(function (_d) {
@@ -63,12 +70,24 @@ const Wave = ({ sugarValue }: Props) => {
     const clipSvgPath = clipArea(data) as string; //convert data point to wave area as svg path String
     const translateXAnimated = useSharedValue(0);
     const translateYAnimated = useSharedValue(0);
+    const textValue = useSharedValue(0);
+
+    useEffect(() => {
+        textValue.value = withTiming(sugarValue, { // animate from 0 to `value`
+            duration: 1000, // duration of animation
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [sugarValue]);
+
+    const text = useDerivedValue(() => { // derived value for the Text component
+        return `${textValue.value.toFixed(0)}`; // convert to string 
+    }, [textValue]);
 
     useEffect(() => {
         translateYAnimated.value = withTiming(percent, {
-            duration: 1000,
+            duration: 1500,
         })
-        
+
     }, [percent])
 
     useEffect(() => {
@@ -78,7 +97,7 @@ const Wave = ({ sugarValue }: Props) => {
                 easing: Easing.linear
             }),
             -1, //repeat forever
-            
+
         )
     }, [])
 
@@ -93,16 +112,18 @@ const Wave = ({ sugarValue }: Props) => {
         );
         cilpP.transform(transfromMatrix)
         return cilpP
-    }, [translateXAnimated , translateYAnimated])
+    }, [translateXAnimated, translateYAnimated])
 
     //config color of circleOfWavw
-    var waveColor = colorWave;
-    var strokeColor = primary;
+    var waveColor = 'white';
+    var strokeColor = 'white';
+    var textUnderColor = primary;
     if (sugarValue > maxValue) {
-        waveColor = '#e74060';
+        waveColor = '#ff5a5f';
         strokeColor = '#b10022';
+        textUnderColor ='#b10022'
     }
-    
+
     return (
         <SafeAreaView>
             <Canvas style={{ width: size, height: size }}>
@@ -114,6 +135,14 @@ const Wave = ({ sugarValue }: Props) => {
                     style="stroke"
                     strokeWidth={padding}
                 />
+                <Text
+                    x={textTranslateX}
+                    y={fontSize}
+                    text={text}
+                    font={font}
+                    color={'white'}
+                    transform={textTransform}
+                />
                 <Group clip={cilpPath}>
                     <Circle
                         cx={r}
@@ -121,6 +150,14 @@ const Wave = ({ sugarValue }: Props) => {
                         r={innerCircleRadius}
                         color={waveColor}
                         style="fill"
+                    />
+                    <Text
+                        x={textTranslateX}
+                        y={fontSize}
+                        text={text}
+                        font={font}
+                        color={textUnderColor}
+                        transform={textTransform}
                     />
                 </Group>
             </Canvas>
